@@ -192,6 +192,8 @@ def internal_error(error):
     return render_template('index.html', error="Something went wrong"), 500
 
 
+# Initialize database on startup (works with gunicorn too)
+init_db()
+
 if __name__ == '__main__':
-    init_db()
     app.run(host='0.0.0.0', port=5000, debug=False)
