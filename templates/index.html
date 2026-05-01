@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Personal Expense Tracker - Track your daily spending">
+    <title>💰 Expense Tracker</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>💰 Expense Tracker</h1>
+            <p class="subtitle">Track your daily spending</p>
+        </header>
+
+        <!-- Flash Messages -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <div class="flash-messages">
+                    {% for category, message in messages %}
+                        <div class="alert alert-{{ category }}">
+                            {{ message }}
+                        </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
+
+        <div class="grid">
+            <!-- Add Expense Form -->
+            <section class="card form-card">
+                <h2>➕ Add New Expense</h2>
+                <form method="POST" action="{{ url_for('add_expense') }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                    <div class="form-group">
+                        <label for="amount">Amount ($)</label>
+                        <input type="number" id="amount" name="amount" step="0.01" min="0.01" max="999999.99" required placeholder="0.00">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="category">Category</label>
+                        <select id="category" name="category" required>
+                            <option value="">-- Select Category --</option>
+                            {% for cat in categories %}
+                                <option value="{{ cat }}">{{ cat.title() }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="description">Description (Optional)</label>
+                        <input type="text" id="description" name="description" maxlength="500" placeholder="What did you spend on?">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="date">Date</label>
+                        <input type="date" id="date" name="date" required>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary">Add Expense</button>
+                </form>
+            </section>
+
+            <!-- Summary Cards -->
+            <section class="card summary-card">
+                <h2>📊 Spending Summary</h2>
+                <div class="total-box">
+                    <span class="total-label">Total Spent</span>
+                    <span class="total-amount">${{ "{:.2f}".format(total_spending) }}</span>
+                </div>
+
+                <h3>By Category</h3>
+                <div class="category-list">
+                    {% for cat in category_summary %}
+                        <div class="category-item">
+                            <span class="cat-name">{{ cat['category'].title() }}</span>
+                            <span class="cat-amount">${{ "{:.2f}".format(cat['total']) }}</span>
+                            <span class="cat-count">({{ cat['count'] }} items)</span>
+                        </div>
+                    {% else %}
+                        <p class="empty">No expenses yet</p>
+                    {% endfor %}
+                </div>
+            </section>
+        </div>
+
+        <!-- Monthly Summary -->
+        <section class="card">
+            <h2>📈 Monthly Trend</h2>
+            <div class="monthly-list">
+                {% for month in monthly_summary %}
+                    <div class="month-item">
+                        <span class="month-name">{{ month['month'] }}</span>
+                        <div class="month-bar-container">
+                            <div class="month-bar" style="width: {{ (month['total'] / total_spending * 100) if total_spending > 0 else 0 }}%"></div>
+                        </div>
+                        <span class="month-amount">${{ "{:.2f}".format(month['total']) }}</span>
+                    </div>
+                {% else %}
+                    <p class="empty">No data available</p>
+                {% endfor %}
+            </div>
+        </section>
+
+        <!-- Recent Expenses -->
+        <section class="card">
+            <h2>📝 Recent Expenses</h2>
+            {% if expenses %}
+                <div class="table-responsive">
+                    <table class="expense-table">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Category</th>
+                                <th>Description</th>
+                                <th>Amount</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for expense in expenses %}
+                                <tr>
+                                    <td>{{ expense['date'] }}</td>
+                                    <td><span class="badge badge-{{ expense['category'] }}">{{ expense['category'].title() }}</span></td>
+                                    <td>{{ expense['description'] or '-' }}</td>
+                                    <td class="amount">${{ "{:.2f}".format(expense['amount']) }}</td>
+                                    <td>
+                                        <form method="POST" action="{{ url_for('delete_expense', expense_id=expense['id']) }}" class="delete-form">
+                                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                            <button type="submit" class="btn-delete" onclick="return confirm('Delete this expense?')">🗑️</button>
+                                        </form>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <p class="empty">No expenses recorded yet. Add your first expense above!</p>
+            {% endif %}
+        </section>
+
+        <footer>
+            <p>💰 Expense Tracker - Built with Flask & SQLite</p>
+        </footer>
+    </div>
+
+    <script>
+        // Set today's date as default
+        document.getElementById('date').valueAsDate = new Date();
+    </script>
+</body>
+</html>
